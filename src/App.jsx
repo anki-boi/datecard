@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { supabase, DEMO_MODE } from "./lib/supabase";
-import { getMyProfiles, upsertProfile, getProfileById, getApplications, addApplication, updateApplication } from "./lib/db";
+import { getMyProfiles, upsertProfile, getProfileById, getApplications, addApplication, updateApplication, getApplicationById, getRevealedSocials, logEvent } from "./lib/db";
+import { compileCard, aiAvailable, INTERVIEW } from "./lib/ai";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -360,6 +361,48 @@ function PromptPicker({ selected, onChange, type }) {
   );
 }
 
+// ─── AI CARD BUILDER (SPEC.md §5.1.3) ────────────────────────────────────────
+
+function AIBuilder({ type, onCompile }) {
+  const [answers, setAnswers] = useState(INTERVIEW.map((i) => ({ q: i.q, hint: i.hint, answer: "" })));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function go() {
+    const filled = answers.filter((a) => a.answer.trim()).length;
+    if (filled < 3) { setError("Answer at least 3 questions to give the AI something to work with."); return; }
+    setBusy(true); setError("");
+    try {
+      const compiled = await compileCard(answers, type);
+      onCompile(compiled);
+      setError("✨ Done — review the edits below, then save.");
+    } catch (e) {
+      setError("AI compile failed: " + e.message);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div>
+      {answers.map((a, i) => (
+        <div key={i} className="prompt-card">
+          <div className="prompt-q">{a.q}</div>
+          <textarea
+            style={{ width: "100%", background: "#111", border: "1px solid #2a2a2a", color: "var(--paper)", fontFamily: "var(--mono)", fontSize: 13, padding: "10px 12px", resize: "vertical", outline: "none", minHeight: 56 }}
+            placeholder={a.hint}
+            value={a.answer}
+            onChange={e => { const n = [...answers]; n[i] = { ...n[i], answer: e.target.value }; setAnswers(n); }}
+          />
+        </div>
+      ))}
+      <button className="btn btn-p" onClick={go} disabled={busy} style={{ marginTop: 6 }}>
+        {busy ? "Compiling…" : "✨ Compile my card"}
+      </button>
+      {error && <div style={{ marginTop: 10, fontSize: 12, color: error.startsWith("✨") ? "var(--green)" : "var(--red)" }}>{error}</div>}
+    </div>
+  );
+}
+
 // ─── PRINT CARD MODAL ─────────────────────────────────────────────────────────
 
 function TplMiniPreview({ tpl, name, url }) {
@@ -567,15 +610,26 @@ function CreateProfile({ onNav, onSave, profileType, existingUser }) {
     name: "", age: "", location: "", bio: "",
     interests: [], hobbies: [], lookingFor: "",
     prompts: [],
-    socials: { instagram: "", twitter: "", facebook: "", tiktok: "", linkedin: "" }
+    socials: { instagram: "", twitter: "", facebook: "", tiktok: "", linkedin: "" },
+    settings: { showLocation: true },
+    status: "active",
   });
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
   function setSoc(k, v) { setForm(f => ({ ...f, socials: { ...f.socials, [k]: v } })); }
+  function applyAI(c) {
+    setForm(f => ({
+      ...f,
+      bio: c.bio || f.bio,
+      lookingFor: c.lookingFor || f.lookingFor,
+      prompts: Array.isArray(c.prompts) && c.prompts.length ? c.prompts.slice(0, 3) : f.prompts,
+      interests: Array.isArray(c.interests) && c.interests.length ? [...new Set([...f.interests, ...c.interests])] : f.interests,
+    }));
+  }
 
   function save() {
     const id = generateId();
-    onSave({ ...form, id, type: profileType, ownerId: auth, createdAt: new Date().toISOString() }, auth);
+    onSave({ ...form, id, type: profileType, ownerId: auth, status: "active", createdAt: new Date().toISOString() }, auth);
     onNav("dashboard");
   }
 
@@ -619,6 +673,12 @@ function CreateProfile({ onNav, onSave, profileType, existingUser }) {
         <div className="field"><label>Age</label><input type="number" value={form.age} onChange={e => set("age", e.target.value)} placeholder="28" /></div>
         <div className="field"><label>Location</label><input value={form.location} onChange={e => set("location", e.target.value)} placeholder="City" /></div>
       </div>
+      {pt.id !== "casual" && (
+        <div className="field" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <input type="checkbox" id="showLoc" checked={form.settings.showLocation} onChange={e => set("settings", { ...form.settings, showLocation: e.target.checked })} style={{ width: 16, height: 16 }} />
+          <label htmlFor="showLoc" style={{ margin: 0 }}>Show my city on my card</label>
+        </div>
+      )}
       <div className="field"><label>Bio</label>
         <textarea value={form.bio} onChange={e => set("bio", e.target.value)}
           placeholder={pt.id === "casual" ? "Set the tone. Be honest." : pt.id === "friendship" ? "Who you are, what you're into." : "A few lines. Make it real."} />
@@ -634,6 +694,13 @@ function CreateProfile({ onNav, onSave, profileType, existingUser }) {
 
       <div className="slabel">Prompts (up to 3)</div>
       <PromptPicker selected={form.prompts} onChange={v => set("prompts", v)} type={profileType} />
+
+      <div className="slabel">✨ AI-assisted card</div>
+      {aiAvailable() ? (
+        <AIBuilder type={profileType} onCompile={applyAI} />
+      ) : (
+        <div className="notice">AI mode is off — add <code style={{ color: "var(--gold)" }}>VITE_GEMINI_API_KEY</code> to <code style={{ color: "var(--gold)" }}>.env</code> to unlock the AI card writer.</div>
+      )}
 
       <div className="slabel">Social links <span style={{ color: "var(--muted)", fontSize: 10, textTransform: "none", fontStyle: "italic" }}>— hidden until you accept someone</span></div>
       <div className="notice">Only revealed to people you explicitly accept. Never shown publicly.</div>
@@ -659,6 +726,8 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
   const [auth, setAuth] = useState(null);
   const [note, setNote] = useState("");
   const [applied, setApplied] = useState(false);
+  const [appliedAppId, setAppliedAppId] = useState(null);
+  const [reported, setReported] = useState(false);
 
   const p = profile || {
     name: "Alex Morgan", age: 28, location: "New York",
@@ -676,15 +745,30 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
 
   const pt = PROFILE_TYPES.find(t => t.id === p.type) || PROFILE_TYPES[0];
   const isOwn = currentUser && profile?.ownerId === currentUser;
+  const canShowLoc = p.type !== "casual" && p.settings?.showLocation !== false;
+  const isPaused = p.status === "paused";
 
   function handleOAuth(p) {
     setAuth(p);
     if (!DEMO_MODE) supabase.auth.signInWithOAuth({ provider: p, options: { redirectTo: window.location.origin } });
   }
 
-  function submit() {
+  function report() {
+    if (reported) return;
+    setReported(true);
+    if (!DEMO_MODE) logEvent(p.id, "report");
+  }
+
+  async function submit() {
     if (!auth) return;
-    if (onApply) onApply(p.id, { id: generateId(), name: "You (Demo)", platform: auth, handle: "@demo_user", emoji: "✨", appliedAt: "Just now", status: "pending", note });
+    const app = { id: generateId(), name: "You (Demo)", platform: auth, handle: "@demo_user", emoji: "✨", appliedAt: "Just now", status: "pending", note };
+    let applicantId = null;
+    if (!DEMO_MODE) {
+      const { data } = await supabase.auth.getUser();
+      applicantId = data.user?.id || null;
+    }
+    if (onApply) onApply(p.id, { ...app, applicant_id: applicantId });
+    setAppliedAppId(app.id);
     setApplied(true);
     setShowApply(false);
   }
@@ -694,7 +778,8 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
       {isOwn && (
         <div className="notice">Previewing your own card. <button className="btn btn-g btn-sm" onClick={() => onNav("dashboard")}>Go to Dashboard →</button></div>
       )}
-      {applied && <div className="success-banner">✓ Application sent! You'll get their social links if they accept.</div>}
+      {applied && <div className="success-banner">✓ Application sent! <a href={"/a/" + appliedAppId} style={{ color: "var(--gold)" }}>Save this link to check your status →</a></div>}
+      {isPaused && <div className="notice" style={{ borderLeftColor: "var(--muted)" }}>⏸ This card is paused — not taking new applications right now.</div>}
 
       <div className="type-banner" style={{ borderColor: `${pt.color}44`, color: pt.color, background: `${pt.color}0a` }}>
         {pt.icon} <span style={{ letterSpacing: "0.06em" }}>{pt.label} Card</span>
@@ -703,7 +788,7 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
 
       <div className="profile-hdr">
         <div className="profile-name">{p.name}</div>
-        <div className="profile-meta">{[p.age, p.location].filter(Boolean).join(" · ")}</div>
+        <div className="profile-meta">{[p.age, canShowLoc ? p.location : null].filter(Boolean).join(" · ")}</div>
         <p className="profile-bio">{p.bio}</p>
       </div>
 
@@ -727,10 +812,17 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
         <div style={{ fontSize: 26 }}>🔒</div>
         <h3>Social links are private</h3>
         <p>Apply to connect. {p.name} will review your profile and decide whether to share their links with you.</p>
-        {!isOwn && !applied && <button className="btn btn-p btn-lg" onClick={() => setShowApply(true)}>Apply to Connect</button>}
-        {applied && <div style={{ color: "var(--gold)", fontSize: 13 }}>✓ Application sent</div>}
+        {!isOwn && !applied && !isPaused && <button className="btn btn-p btn-lg" onClick={() => setShowApply(true)}>Apply to Connect</button>}
+        {!isOwn && !applied && isPaused && <div style={{ color: "var(--muted)", fontSize: 13 }}>⏸ Not taking applications right now.</div>}
+        {applied && <div style={{ color: "var(--gold)", fontSize: 13 }}>✓ Application sent — <a href={"/a/" + appliedAppId} style={{ color: "var(--gold)" }}>track it here</a></div>}
         {isOwn && <div style={{ color: "var(--muted)", fontSize: 12 }}>This is your own card.</div>}
       </div>
+
+      {!isOwn && (
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button className="btn btn-g btn-sm" onClick={report}>{reported ? "Thanks — we'll take a look." : "Report this card"}</button>
+        </div>
+      )}
 
       {showApply && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && setShowApply(false)}>
@@ -743,6 +835,7 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
               <OAuthBtn platform="facebook"  icon="👤" label="Facebook"   selected={auth} onSelect={p => handleOAuth(p)} />
               <OAuthBtn platform="tiktok"    icon="🎵" label="TikTok"     selected={auth} onSelect={p => handleOAuth(p)} />
             </div>
+            {pt.id === "casual" && <div className="notice">This card is best explored with a finsta 👀 — keep your main handle safe.</div>}
             <div className="field">
               <label>Optional note</label>
               <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Say something that'll make them want to accept..."
@@ -771,6 +864,12 @@ function Dashboard({ profiles, applications, currentUser, onNav, onUpdateApp, on
   const accepted = apps.filter(a => a.status === "accepted");
   const declined = apps.filter(a => a.status === "declined");
   const profileUrl = `datecard.app/p/${activeProfile?.id || "DEMO"}`;
+
+  function togglePause() {
+    if (!activeProfile) return;
+    const next = { ...activeProfile, status: activeProfile.status === "paused" ? "active" : "paused" };
+    onUpdateProfile(next);
+  }
 
   function AppCard({ app }) {
     const icons = { instagram: "📸", twitter: "🐦", facebook: "👤", tiktok: "🎵" };
@@ -804,6 +903,7 @@ function Dashboard({ profiles, applications, currentUser, onNav, onUpdateApp, on
           <div className="dash-sub">Manage all your DateCard profiles</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-o btn-sm" onClick={togglePause}>{activeProfile?.status === "paused" ? "▶ Resume" : "⏸ Pause"}</button>
           <button className="btn btn-o btn-sm" onClick={() => onViewProfile(activeProfile)}>Preview</button>
           <button className="btn btn-g btn-sm" onClick={() => onNav("choose-type")}>+ New Card</button>
         </div>
@@ -818,7 +918,7 @@ function Dashboard({ profiles, applications, currentUser, onNav, onUpdateApp, on
               style={{ "--tc": TYPE_COLORS[p.type] }}
               onClick={() => { setActiveType(p.type); setInnerTab("applications"); }}>
               <span className="dot" style={{ "--tc": TYPE_COLORS[p.type] }} />
-              {pt?.icon} {pt?.label}
+              {pt?.icon} {pt?.label}{p.status === "paused" ? " ⏸" : ""}
             </button>
           );
         })}
@@ -998,6 +1098,10 @@ function App() {
           <Dashboard
             profiles={profiles} applications={applications} currentUser={currentUser}
             onNav={setPage} onUpdateApp={updateApp}
+            onUpdateProfile={p => {
+              setProfiles(prev => prev.map(x => x.id === p.id ? p : x));
+              if (!DEMO_MODE && currentUser) upsertProfile({ ...p, owner_id: currentUser.id });
+            }}
             onViewProfile={p => { setVT(p); setPage("view-demo"); }}
           />
         )}
@@ -1016,16 +1120,29 @@ function App() {
 
 // ─── PUBLIC CARD PAGE (/p/:cardId) ───────────────────────────────────────────
 
+function useNoindex() {
+  useEffect(() => {
+    const m = document.createElement("meta");
+    m.name = "robots";
+    m.content = "noindex";
+    document.head.appendChild(m);
+    return () => m.remove();
+  }, []);
+}
+
 function PublicCardPage() {
   const { cardId } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useNoindex();
 
   useEffect(() => {
     let alive = true;
     (async () => {
       const p = DEMO_MODE ? null : await getProfileById(cardId);
       if (alive) { setProfile(p); setLoading(false); }
+      if (!DEMO_MODE && p) logEvent(cardId, "view");
     })();
     return () => { alive = false; };
   }, [cardId]);
@@ -1034,7 +1151,7 @@ function PublicCardPage() {
     <div className="page" style={{ textAlign: "center", paddingTop: 80, color: "var(--muted)", fontSize: 13 }}>Loading card…</div>
   );
 
-  if (!profile) return (
+  if (!profile && !DEMO_MODE) return (
     <div className="page" style={{ textAlign: "center", paddingTop: 80 }}>
       <div style={{ fontSize: 34, marginBottom: 14 }}>🃏</div>
       <div className="page-t" style={{ fontSize: 26 }}>Card not found</div>
@@ -1048,8 +1165,101 @@ function PublicCardPage() {
       profile={profile}
       currentUser={null}
       onNav={() => {}}
-      onApply={(pid, app) => { if (!DEMO_MODE) addApplication(pid, app); }}
+      onApply={async (pid, app) => {
+        if (DEMO_MODE) return;
+        await addApplication(pid, app);
+        logEvent(pid, "apply");
+      }}
     />
+  );
+}
+
+// ─── APPLICATION STATUS PAGE (/a/:appId) — the applicant's side ──────────────
+
+function ApplicationStatusPage() {
+  const { appId } = useParams();
+  const [app, setApp] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [socials, setSocials] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useNoindex();
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (DEMO_MODE) {
+        if (alive) { setApp({ id: appId, status: "pending" }); setProfile(null); setLoading(false); }
+        return;
+      }
+      const a = await getApplicationById(appId);
+      if (!a) { if (alive) setLoading(false); return; }
+      const p = await getProfileById(a.profile_id);
+      const s = a.status === "accepted" ? await getRevealedSocials(a.profile_id) : null;
+      if (alive) { setApp(a); setProfile(p); setSocials(s); setLoading(false); }
+    })();
+    return () => { alive = false; };
+  }, [appId]);
+
+  if (loading) return (
+    <div className="page" style={{ textAlign: "center", paddingTop: 80, color: "var(--muted)", fontSize: 13 }}>Loading application…</div>
+  );
+
+  if (!app) return (
+    <div className="page" style={{ textAlign: "center", paddingTop: 80 }}>
+      <div style={{ fontSize: 34, marginBottom: 14 }}>📨</div>
+      <div className="page-t" style={{ fontSize: 26 }}>Application not found</div>
+      <p className="page-s">This link is private to you. Scan the card again to start a new application.</p>
+      <a href="/" className="btn btn-o" style={{ display: "inline-block", textDecoration: "none" }}>← Home</a>
+    </div>
+  );
+
+  const pt = PROFILE_TYPES.find(t => t.id === (profile?.type || "serious")) || PROFILE_TYPES[0];
+  const socialList = socials ? Object.entries(socials).filter(([, v]) => v) : [];
+
+  return (
+    <div className="pview fade-in">
+      <div className="type-banner" style={{ borderColor: `${pt.color}44`, color: pt.color, background: `${pt.color}0a` }}>
+        {pt.icon} <span style={{ letterSpacing: "0.06em" }}>{pt.label} Card</span>
+      </div>
+
+      <div className="profile-hdr">
+        <div className="profile-name">{profile?.name || "Alex Morgan"}</div>
+        <div className="profile-meta">Application · <span className={`spill ${app.status}`} style={{ display: "inline-block", marginLeft: 6 }}>{app.status}</span></div>
+        {app.status === "pending" && <p className="profile-bio" style={{ marginTop: 14 }}>⏳ Waiting on their decision. You'll get their socials here the moment they accept.</p>}
+        {app.status === "declined" && <p className="profile-bio" style={{ marginTop: 14 }}>This application was declined. No hard feelings — the card is the door, not the verdict.</p>}
+      </div>
+
+      {app.status === "accepted" && (
+        <div style={{ marginBottom: 30 }}>
+          <div className="slabel" style={{ marginTop: 0 }}>You're in 🎉 — here are their socials</div>
+          {socialList.length === 0 && <div className="notice">Their socials are on the way — check back in a moment.</div>}
+          {socialList.map(([platform, handle]) => (
+            <div key={platform} className="acard">
+              <div className="aav">{SOCIAL_PLATFORMS.find(s => s.id === platform)?.icon || "🔗"}</div>
+              <div className="ainfo">
+                <div className="aname">{SOCIAL_PLATFORMS.find(s => s.id === platform)?.label || platform}</div>
+                <div className="ameta">{handle}</div>
+              </div>
+              <button className="btn btn-o btn-sm" onClick={() => navigator.clipboard?.writeText(String(handle))}>Copy</button>
+            </div>
+          ))}
+          <div className="notice" style={{ marginTop: 16 }}>Be cool, be kind, and don't share their links without asking. That's the deal.</div>
+        </div>
+      )}
+
+      {app.status === "pending" && (
+        <div className="lock-box" style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 26 }}>🔒</div>
+          <h3>Socials unlock on accept</h3>
+          <p>Bookmark this page. When they accept, their links appear right here.</p>
+        </div>
+      )}
+
+      <div style={{ textAlign: "center", marginTop: 20 }}>
+        <a href="/" className="btn btn-g" style={{ textDecoration: "none", display: "inline-block" }}>← Home</a>
+      </div>
+    </div>
   );
 }
 
@@ -1058,6 +1268,7 @@ export default function Root() {
     <BrowserRouter>
       <Routes>
         <Route path="/p/:cardId" element={<PublicCardPage />} />
+        <Route path="/a/:appId" element={<ApplicationStatusPage />} />
         <Route path="*" element={<App />} />
       </Routes>
     </BrowserRouter>

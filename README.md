@@ -27,10 +27,11 @@ npm run dev
 Runs in **DEMO_MODE** (mock data, no setup) until you add Supabase credentials:
 
 1. Create a free project at [supabase.com](https://supabase.com)
-2. Run `supabase/schema.sql` in the SQL editor
+2. Run `supabase/schema.sql` in the SQL editor (includes RPCs + RLS — public reads go through `get_public_profile`, socials can only be revealed via `reveal_socials`)
 3. Enable the auth providers you want (Authentication → Providers): Google, Facebook, Instagram
 4. Copy `.env.example` → `.env` and paste in `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
-5. Restart `npm run dev` — the app now persists profiles and applications for real
+5. Optional: add `VITE_GEMINI_API_KEY` to unlock the AI-assisted card builder (client-side Gemini — proxy via edge function for production, see SPEC.md)
+6. Restart `npm run dev` — the app now persists profiles and applications for real
 
 ## Deploy (free)
 
@@ -50,11 +51,11 @@ events         — scans/views (future premium analytics)
 
 ## Roadmap
 
-- [ ] Photo upload (Supabase Storage)
-- [ ] AI profile builder — guided interview → compiled prompts in your voice
-- [ ] Print-ready PDF export (credit-card / A6, print-shop friendly)
-- [ ] Premium: 3 profiles, extra templates, analytics
-- [ ] QR-as-key token activation for printed cards
+- [x] **P0 — Scaffold:** Vite + React + Supabase, demo-mode fallback, `/p/:cardId`, RLS schema
+- [x] **P1 — Behavior contract (see SPEC.md):** applicant status page `/a/:appId`, card pause/resume, per-card visibility (casual hides city), privacy defaults (noindex, report, socials RPC-only), AI card builder (6-question interview → Gemini compile)
+- [ ] **P2 — Hardening:** photo upload (Supabase Storage), email notification on accept (SMTP/Resend + edge function), AI key proxy, applicant "my applications" list
+- [ ] **P3 — Premium:** payments (Stripe), 3-profile unlock, analytics, extra templates, QR-as-key token activation
+- [ ] **P4 — PH launch:** print-shop PDF export (A6/credit-card), Messenger-first share sheet, phone-wallpaper QR
 
 ## License
 

@@ -852,7 +852,7 @@ function PublicProfileView({ profile, currentUser, onNav, onApply }) {
   );
 }
 
-function Dashboard({ profiles, applications, currentUser, onNav, onUpdateApp, onViewProfile }) {
+function Dashboard({ profiles, applications, currentUser, onNav, onUpdateApp, onUpdateProfile, onViewProfile }) {
   const [activeType, setActiveType] = useState(profiles[0]?.type || "serious");
   const [innerTab, setInnerTab] = useState("applications");
   const [showPrint, setShowPrint] = useState(false);

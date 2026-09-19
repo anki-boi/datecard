@@ -11,6 +11,30 @@ Open source (MIT). Zero signup forms — one-tap social login. One account, up t
 profiles: **Serious 💍 · Casual / Spicy 🔥 · Friendship 🤝** — each with its own link,
 QR code, and inbox. Public pages never link profiles to each other.
 
+## Why this exists
+
+**There's no good way to show someone who you are when you meet them in public.**
+
+The exchange offer is always "find me on Instagram" — which is an all-or-nothing broadcast,
+not an introduction. They don't get the person you just met; they get the last three years.
+There's no way to hand over one side of yourself. And plenty of people have no public
+social presence at all and are not going to build one just to be findable.
+
+Dating apps solve a different problem. They put you in front of *strangers*. But when you
+already met someone in person, an app is just re-introducing you through an algorithm
+neither of you needs.
+
+DateCard replaces the handle with an exchange you control: **scan → read the profile →
+apply to connect → you approve or decline → only then do they get your socials.**
+It works in public with no app installed, one account holds up to three separate profiles
+so each audience sees a different side of you, and giving someone a card is a deliberate,
+respectful offer rather than adding a stranger.
+
+Privacy is the feature, not a footnote: socials are never in the public page payload —
+they're reachable only through an RPC that checks for an *accepted* application first.
+
+**→ [Read the full problem breakdown](PROBLEMS.md)**
+
 ## Stack
 
 - **Frontend:** Vite + React (SPA, mobile-first, dark + gold)

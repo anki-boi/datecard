@@ -22,12 +22,17 @@ npm run dev
 No credentials needed. Without Supabase keys the app runs in **demo mode**: a complete
 in-browser backend, saved to `localStorage`, that plays both sides of the product.
 
+The landing page opens with a short storyboard on a lamp-lit table: hand the card over →
+they scan it → they apply → you decide → carry it anywhere (wallet, lock screen, story,
+event badge). Chapters are clickable, it pauses off-screen, and it respects reduced motion.
+
 1. **Be the stranger.** Open a sample card (Alex, Rae or Miko), hit *Apply to connect*,
    write a note. The sample owner "reads" it and accepts in about nine seconds — confetti,
    their socials unlock, and you get three openers written from their own prompt answers.
-2. **Be the card holder.** *Create your card* → pick a type → build it while the live
-   preview and card-strength meter update beside you. Your new card arrives with a little
-   history so the dashboard has something in it.
+2. **Be the card holder.** *Make your card* → pick a type → build it while the live
+   preview and card-strength meter update beside you. You only sign in when you hit
+   *Publish*. Your new card arrives with a little history so the dashboard has something
+   in it, plus a "hand it out" panel with the next steps.
 3. **Get scanned.** On the dashboard, hit **Simulate a scan**. A stranger views your card
    and (usually) applies, quoting a line from it. Accept them and watch the toast.
 4. **Apply to yourself.** Preview your card → *Try applying as a stranger* → apply →
@@ -83,7 +88,7 @@ anonymous applies, cross-user writes) and prints PASS/FAIL for each.
 
 ## Stack
 
-- **Frontend:** Vite + React 18 + React Router (mobile-first, dark + gold)
+- **Frontend:** Vite + React 18 + React Router (mobile-first, dark + gold; Bodoni Moda + Hanken Grotesk)
 - **Backend:** Supabase (Postgres + Auth + Storage + RLS). The free tier is enough.
 - **QR / posters:** `qrcode` + canvas, all client-side
 - **AI (optional):** Gemini drafts your card from a six-question interview, and writes openers
@@ -93,7 +98,7 @@ src/
   App.jsx              routes, nav, demo bar
   state.jsx            auth, cards, toasts, confetti
   pages/               Landing · CardEditor · Dashboard · Applicant (/p /a /me) · PrintSheet
-  components/          cards (BizCard, ProfileBody) · ShareKit · ui (QR, Modal, TagInput…)
+  components/          HeroStory (landing storyboard) · cards (BizCard, ProfileBody) · ShareKit · ui
   lib/
     api.js             one API → demo.js (browser) or db.js (Supabase)
     demo.js            demo backend: same contract as the SQL, in localStorage

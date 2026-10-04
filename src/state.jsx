@@ -22,13 +22,18 @@ export function AppProvider({ children }) {
   }, []);
 
   const [profilesLoaded, setProfilesLoaded] = useState(false);
+  const seq = useRef(0);
+  // Reads the *current* user on every call (sign-in and publish can happen in the same tick,
+  // so a closure's `user` may be stale) and drops responses that arrive out of order.
   const refreshProfiles = useCallback(async () => {
-    if (!user) { setProfiles([]); setProfilesLoaded(authReady); return []; }
-    const ps = await api.getMyProfiles(user.id);
+    const mine = ++seq.current;
+    const u = await api.getUser();
+    const ps = u ? await api.getMyProfiles(u.id) : [];
+    if (mine !== seq.current) return ps;
     setProfiles(ps);
-    setProfilesLoaded(true);
+    setProfilesLoaded(u ? true : authReady);
     return ps;
-  }, [user, authReady]);
+  }, [user, authReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { refreshProfiles().catch((e) => console.warn(e)); }, [refreshProfiles]);
 

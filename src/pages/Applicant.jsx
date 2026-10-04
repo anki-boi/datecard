@@ -48,7 +48,7 @@ export function PublicCardPage() {
   const viewed = useRef(false);
 
   useNoindex();
-  useTitle(profile ? `${profile.name} · DateCard` : null);
+  useTitle(profile ? `${profile.name}, on DateCard` : null);
 
   useEffect(() => {
     let alive = true;
@@ -98,7 +98,7 @@ export function PublicCardPage() {
           <span>👋 This is your card, as strangers see it.</span>
           <span style={{ display: "flex", gap: 6 }}>
             {demo && <button className="btn btn-o btn-sm" onClick={() => setAsStranger(true)}>Try applying as a stranger</button>}
-            <Link className="btn btn-g btn-sm" to={`/dashboard?card=${profile.type}`}>Dashboard →</Link>
+            <Link className="btn btn-g btn-sm" to={`/dashboard?card=${profile.type}`}>Open dashboard</Link>
           </span>
         </div>
       )}
@@ -108,7 +108,7 @@ export function PublicCardPage() {
       {profile.sample && demo && !isOwn && (
         <div className="notice">✨ Sample card. Apply and {first} answers in about {Math.round(SAMPLE_ACCEPT_MS / 1000)} seconds, so you can see what the applicant gets.</div>
       )}
-      {profile.liveSample && <div className="notice">✨ This is a sample card, so it isn't taking applications. <Link to="/new">Make your own →</Link></div>}
+      {profile.liveSample && <div className="notice">✨ This is a sample card, so it isn't taking applications. <Link to="/new">Make your own</Link></div>}
       {paused && <div className="notice" style={{ borderLeftColor: "var(--muted)" }}>⏸ This card is paused — not taking new applications right now.</div>}
 
       <ProfileBody p={profile} />
@@ -185,7 +185,7 @@ function ApplyModal({ profile, onClose, onSent }) {
       <ModalHeader title="Apply to connect" sub={`${first} sees your name and note, then decides.`} onClose={onClose} />
       {!signedIn ? (
         <>
-          <div className="side-label">Step 1 · who are you?</div>
+          <div className="side-label">First, sign in so they know who you are</div>
           <AuthButtons busy={busy} onPick={pickProvider} />
           {api.DEMO_MODE && <div className="notice">Demo mode — pick any. No real sign-in happens.</div>}
         </>
@@ -285,7 +285,7 @@ export function ApplicationStatusPage() {
       <div className="profile-hdr">
         {profile && <Avatar profile={profile} size={84} />}
         <div className="profile-name">{profile?.name || "Their card"}</div>
-        <div className="profile-meta">Your application · <span className={`spill ${app.status}`} style={{ display: "inline-block", marginLeft: 6 }}>{app.status}</span></div>
+        <div className="profile-meta">Your application <span className={`spill ${app.status}`} style={{ display: "inline-block", marginLeft: 6 }}>{app.status}</span></div>
         {app.status === "pending" && (
           <>
             <p className="profile-bio" style={{ marginTop: 14 }}>⏳ {first} hasn't decided yet. Their socials show up right here the moment they accept.</p>
@@ -378,7 +378,7 @@ export function MyApplications() {
             <div className="aav" aria-hidden="true">{typeOf(profile?.type).icon}</div>
             <div className="ainfo">
               <div className="aname">{profile?.name || "A card"}</div>
-              <div className="ameta">{typeOf(profile?.type).label} · applied {timeAgo(app.created_at)}</div>
+              <div className="ameta">{typeOf(profile?.type).label} card, applied {timeAgo(app.created_at)}</div>
             </div>
             <span className={`spill ${app.status}`}>{app.status}</span>
           </Link>

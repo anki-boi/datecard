@@ -44,7 +44,7 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   const solid = templateSolid(tpl);
   const light = ["#ffffff", "#f0ead8", "#c9a84c"].includes(solid.toLowerCase());
 
-  try { await document.fonts?.load(`700 ${9 * u}px "Playfair Display"`); await document.fonts?.load(`400 ${3 * u}px "DM Mono"`); } catch { /* fallback fonts */ }
+  try { await document.fonts?.load(`italic 600 ${9 * u}px "Bodoni Moda"`); await document.fonts?.load(`500 ${3 * u}px "Hanken Grotesk"`); await document.fonts?.load(`400 ${3 * u}px "DM Mono"`); } catch { /* fallback fonts */ }
 
   // Background: template colour, a soft glow in the card-type colour, fine grain.
   ctx.fillStyle = solid;
@@ -77,19 +77,19 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   }
 
   ctx.fillStyle = tpl.text;
-  ctx.font = `700 ${9.5 * u}px "Playfair Display", Georgia, serif`;
+  ctx.font = `italic 600 ${9.5 * u}px "Bodoni Moda", Georgia, serif`;
   ctx.fillText(profile.name || "Your Name", w / 2, y);
   y += 5.5 * u;
 
-  ctx.font = `400 ${2.9 * u}px "DM Mono", monospace`;
+  ctx.font = `500 ${2.9 * u}px "Hanken Grotesk", sans-serif`;
   ctx.globalAlpha = 0.7;
-  const meta = [profile.age, canShowLocation(profile) ? profile.location : null].filter(Boolean).join("  ·  ");
-  ctx.fillText(`${meta ? meta + "  ·  " : ""}${pt.icon} ${pt.label}`, w / 2, y);
+  const meta = [profile.age, canShowLocation(profile) ? profile.location : null].filter(Boolean).join(", ");
+  ctx.fillText(`${meta ? meta + ", " : ""}${pt.label.toLowerCase()} card`, w / 2, y);
   ctx.globalAlpha = 1;
   y += 6 * u;
 
   if (profile.lookingFor) {
-    ctx.font = `italic 400 ${3.6 * u}px "Playfair Display", Georgia, serif`;
+    ctx.font = `italic 400 ${3.6 * u}px "Bodoni Moda", Georgia, serif`;
     ctx.fillStyle = tpl.accent;
     for (const line of wrap(ctx, `“${profile.lookingFor}”`, w * 0.78).slice(0, 2)) { ctx.fillText(line, w / 2, y); y += 5 * u; }
     y += 2 * u;
@@ -112,14 +112,15 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   y = py + qrSize + pad * 2 + 8 * u;
 
   ctx.fillStyle = tpl.text;
-  ctx.font = `500 ${3.4 * u}px "DM Mono", monospace`;
-  ctx.fillText("SCAN TO APPLY  ↗", w / 2, y);
+  ctx.font = `600 ${3.4 * u}px "Hanken Grotesk", sans-serif`;
+  ctx.fillText("Scan to apply", w / 2, y);
   y += 4.6 * u;
   ctx.globalAlpha = 0.5;
   ctx.font = `400 ${2.5 * u}px "DM Mono", monospace`;
   ctx.fillText(prettyUrl(url), w / 2, y);
   ctx.globalAlpha = 0.35;
-  ctx.fillText("no app · no algorithm · DateCard", w / 2, h - 6 * u);
+  ctx.font = `italic 500 ${2.6 * u}px "Bodoni Moda", Georgia, serif`;
+  ctx.fillText("DateCard", w / 2, h - 6 * u);
   ctx.globalAlpha = 1;
 
   return c.toDataURL("image/png");

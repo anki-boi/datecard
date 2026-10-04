@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import * as api from "../lib/api.js";
 import { PROFILE_TYPES, PROMPTS_BY_TYPE, SOCIAL_PLATFORMS, EMPTY_SOCIALS, typeOf, templateOf } from "../lib/constants.js";
 import { generateId, cardStrength, pick } from "../lib/util.js";
@@ -7,7 +7,7 @@ import { compileCard, aiAvailable, INTERVIEW } from "../lib/ai.js";
 import { saveDraft, loadDraft, clearDraft } from "../lib/drafts.js";
 import { shrinkPhoto } from "../lib/poster.js";
 import { useApp } from "../state.jsx";
-import { AuthButtons, TagInput, Loading } from "../components/ui.jsx";
+import { AuthButtons, TagInput, Loading, Modal, ModalHeader } from "../components/ui.jsx";
 import { BizCard, ProfileBody } from "../components/cards.jsx";
 
 // ─── choose a card type (/new) ───────────────────────────────────────────────
@@ -52,7 +52,7 @@ export function ChooseType() {
 
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-p" disabled={!sel} onClick={() => navigate(owned.includes(sel) ? `/edit/${sel}` : `/new/${sel}`)}>
-          {owned.includes(sel) ? "Edit this card →" : "Continue →"}
+          {owned.includes(sel) ? "Edit this card" : "Continue"}
         </button>
         <Link className="btn btn-g" to={owned.length ? "/dashboard" : "/"} style={{ textDecoration: "none" }}>Back</Link>
       </div>
@@ -78,6 +78,9 @@ export function CardEditor({ mode }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [askSignIn, setAskSignIn] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const autoPublished = useRef(false);
 
   // Initial form: the saved card (edit) → a draft that survived an OAuth redirect → blank.
   useEffect(() => {
@@ -95,24 +98,17 @@ export function CardEditor({ mode }) {
 
   useEffect(() => { if (form) saveDraft(draftKey, form); }, [form, draftKey]);
 
+  // Back from an OAuth redirect that started at "Publish": finish publishing.
+  useEffect(() => {
+    if (params.get("publish") === "1" && user && form && !autoPublished.current) {
+      autoPublished.current = true;
+      setParams({}, { replace: true });
+      save();
+    }
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!PROFILE_TYPES.some((t) => t.id === type)) return <Loading>Unknown card type.</Loading>;
   if (!authReady) return <Loading />;
-
-  if (!user) {
-    return (
-      <div className="page fade-in">
-        <TypeBadge pt={pt} />
-        <div className="page-t">First, who are you?</div>
-        <p className="page-s">One tap. We never see a password, and nothing from your account is shown on your card unless you type it in.</p>
-        <AuthButtons busy={signingIn} onPick={async (provider) => {
-          setSigningIn(true);
-          try { await api.signIn(provider); } catch (e) { toast(e.message, "bad"); setSigningIn(false); }
-        }} />
-        {api.DEMO_MODE && <div className="notice">Demo mode — no real sign-in happens. Pick any.</div>}
-        <Link className="btn btn-g" to="/new" style={{ textDecoration: "none" }}>Back</Link>
-      </div>
-    );
-  }
 
   if (!form) return <Loading>{mode === "edit" ? "Loading your card…" : "Loading…"}</Loading>;
 
@@ -120,16 +116,44 @@ export function CardEditor({ mode }) {
   const ageBad = form.age !== "" && Number(form.age) < 18;
   const strength = cardStrength(form);
 
+  // Build first, sign in only when publishing.
+  function publish() {
+    if (ageBad) { toast("DateCard is for adults, 18 and over.", "bad"); return; }
+    if (!user) { setAskSignIn(true); return; }
+    save();
+  }
+
+  async function signInToPublish(provider) {
+    setSigningIn(true);
+    try {
+      if (api.DEMO_MODE) {
+        await api.signIn(provider);
+        setAskSignIn(false);
+        setSigningIn(false);
+        save();
+        return;
+      }
+      // Live: OAuth leaves the page. The draft is already in sessionStorage; ?publish=1 finishes the job on return.
+      const back = new URL(window.location.href);
+      back.searchParams.set("publish", "1");
+      window.history.replaceState(null, "", back);
+      await api.signIn(provider);
+    } catch (e) {
+      toast(e.message, "bad");
+      setSigningIn(false);
+    }
+  }
+
   async function save() {
-    if (ageBad) { toast("DateCard is 18+.", "bad"); return; }
+    if (ageBad) { toast("DateCard is for adults, 18 and over.", "bad"); return; }
     setSaving(true);
     try {
       await api.saveProfile({ ...form, name: form.name.trim() });
       clearDraft(draftKey);
       await refreshProfiles();
-      toast(mode === "edit" ? "✓ Card updated — every printed copy shows the new version." : "✓ Your card is live.", "good");
+      toast(mode === "edit" ? "Changes saved. Every printed copy now shows the new version." : "Published. Your card is live.", "good");
       if (mode !== "edit") confetti();
-      navigate(`/dashboard?card=${type}`);
+      navigate(`/dashboard?card=${type}${mode === "edit" ? "" : "&new=1"}`);
     } catch (e) {
       toast(`Couldn't save: ${e.message}`, "bad");
       setSaving(false);
@@ -200,15 +224,15 @@ export function CardEditor({ mode }) {
 
         <div className="sep" />
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn btn-p btn-lg" disabled={!form.name.trim() || saving || ageBad} onClick={save}>
-            {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Generate my card →"}
+          <button className="btn btn-p btn-lg" disabled={!form.name.trim() || saving || ageBad} onClick={publish}>
+            {saving ? (mode === "edit" ? "Saving…" : "Publishing…") : mode === "edit" ? "Save changes" : "Publish my card"}
           </button>
           <button className="btn btn-g" onClick={() => { clearDraft(draftKey); navigate(profiles.length ? "/dashboard" : "/"); }}>Cancel</button>
         </div>
       </div>
 
       <aside className="editor-side" aria-label="Live preview">
-        <div className="side-label">Card strength · {strength.score}%</div>
+        <div className="side-label">Card strength: {strength.score}%</div>
         <div className="strength">
           <div className="strength-bar"><div style={{ width: `${strength.score}%` }} /></div>
           <div className="strength-t">{strength.next ? `Next: ${strength.next}` : "✓ This card is ready to hand out."}</div>
@@ -218,6 +242,14 @@ export function CardEditor({ mode }) {
         <div className="side-label" style={{ marginTop: 22 }}>The printed card</div>
         <div className="biz-fit" style={{ zoom: 0.98 }}><BizCard profile={form} tpl={templateOf("classic")} /></div>
       </aside>
+
+      {askSignIn && (
+        <Modal onClose={() => !signingIn && setAskSignIn(false)} maxWidth={460} label="Sign in to publish">
+          <ModalHeader title="Sign in to publish" sub="Your card is saved on this device. Sign in once so it has an owner and an inbox." onClose={() => setAskSignIn(false)} />
+          <AuthButtons busy={signingIn} onPick={signInToPublish} />
+          <p className="modal-s" style={{ marginBottom: 0 }}>We never see a password. Nothing from your account appears on your card unless you typed it in.{api.DEMO_MODE && " (Demo mode: pick any, no real sign-in happens.)"}</p>
+        </Modal>
+      )}
     </div>
   );
 }

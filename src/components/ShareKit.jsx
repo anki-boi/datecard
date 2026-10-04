@@ -60,7 +60,7 @@ export default function ShareKit({ profile, onClose, initialTab = "print" }) {
             <p className="print-note">Standard 3.5 × 2 in. The print sheet fits ten on US Letter with cut guides.</p>
           </div>
           <div className="print-acts">
-            <Link className="btn btn-p" to={`/print/${profile.id}?tpl=${tpl.id}`} target="_blank" style={{ textDecoration: "none" }}>Open print sheet (10-up) ↗</Link>
+            <Link className="btn btn-p" to={`/print/${profile.id}?tpl=${tpl.id}`} target="_blank" style={{ textDecoration: "none" }}>Open the print sheet</Link>
           </div>
         </>
       )}
@@ -95,7 +95,7 @@ function PosterTab({ profile, url, tpl, slug }) {
       </div>
       <p className="modal-s">
         {kind === "lockscreen"
-          ? "Set it as your lock screen. Meet someone → hand them your phone → they scan it. Your phone is the card."
+          ? "Set it as your lock screen. When you meet someone, hand them your phone and let them scan it. Your phone is the card."
           : "Post it to your story or close friends. The QR still works from a screenshot."}
       </p>
       {img ? <img className="poster-img" src={img} alt={`${POSTER_SIZES[kind].label} poster preview`} /> : <div className="poster-wait">Drawing…</div>}

@@ -105,7 +105,7 @@ export default function Dashboard() {
     <div className="dash fade-in">
       <div className="dash-top">
         <div>
-          <div className="dash-title">Your Cards</div>
+          <div className="dash-title">Your cards</div>
           <div className="dash-sub">{pending.length ? `${pending.length} waiting on you` : "Inbox zero. Go hand out some cards."}</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -132,6 +132,23 @@ export default function Dashboard() {
           </button>
         )}
       </div>
+
+      {params.get("new") === "1" && (
+        <div className="welcome">
+          <div>
+            <h2>Your card is live. Now get it into someone's hands.</h2>
+            <p>Most people start with one of these. They're always here on the dashboard too.</p>
+          </div>
+          <div className="welcome-acts">
+            <button className="btn btn-p btn-sm" onClick={() => setShare("print")}>Print a sheet of cards</button>
+            <button className="btn btn-o btn-sm" onClick={() => setShare("phone")}>Make a lock screen</button>
+            {demo
+              ? <button className="btn btn-o btn-sm" onClick={scan}>See what a scan looks like</button>
+              : <button className="btn btn-o btn-sm" onClick={() => copy(url, "Link copied")}>Copy your link</button>}
+          </div>
+          <button className="btn btn-g welcome-x" aria-label="Dismiss" onClick={() => setParams({ card: active.type }, { replace: true })}>×</button>
+        </div>
+      )}
 
       {paused && <div className="notice" style={{ borderLeftColor: "var(--muted)" }}>⏸ This card is paused. The link still opens, but it says you're not taking applications. Resume any time.</div>}
 
@@ -217,7 +234,7 @@ function Stat({ n, label, premium }) {
   return (
     <div className="stat">
       <div className="stat-n">{premium ? "✦" : n}</div>
-      <div className="stat-l">{label}{premium && <span style={{ color: "var(--gold)" }}> · premium</span>}</div>
+      <div className="stat-l">{label}{premium && <span style={{ color: "var(--gold)" }}> (premium)</span>}</div>
     </div>
   );
 }
@@ -229,7 +246,7 @@ function AppCard({ app, fresh, onDecide }) {
       <div className="aav" aria-hidden="true">{app.emoji || "✨"}</div>
       <div className="ainfo">
         <div className="aname">{app.name}</div>
-        <div className="ameta">{icon} {app.handle || app.platform} · {timeAgo(app.created_at || app.appliedAt)}</div>
+        <div className="ameta">{icon} {app.handle || app.platform}, {timeAgo(app.created_at || app.appliedAt)}</div>
         {app.note && <div className="anote">“{app.note}”</div>}
       </div>
       <div className="aacts">
@@ -257,7 +274,7 @@ function Analytics({ stats }) {
   const top = Math.max(...stats.daily, 1);
   return (
     <div className="fade-in">
-      <div className="side-label">Funnel · all time</div>
+      <div className="side-label">All-time funnel</div>
       <div className="funnel">
         {[["Viewed", stats.views], ["Applied", stats.applies], ["Accepted", stats.accepts]].map(([l, n]) => (
           <div key={l} className="funnel-row">
@@ -268,7 +285,7 @@ function Analytics({ stats }) {
         ))}
       </div>
       <div className="notice"><strong style={{ color: "var(--gold-light)" }}>{rate}%</strong> of people who opened your card applied. {stats.views - stats.applies > 0 && `${stats.views - stats.applies} looked and walked away — that's the card doing the rejecting for you.`}{stats.reports > 0 && ` ${stats.reports} report(s).`}</div>
-      <div className="side-label" style={{ marginTop: 24 }}>Views · last 14 days</div>
+      <div className="side-label" style={{ marginTop: 24 }}>Views over the last 14 days</div>
       <div className="bars" role="img" aria-label={`Views over the last 14 days: ${stats.daily.join(", ")}`}>
         {stats.daily.map((n, i) => <div key={i} style={{ height: `${(n / top) * 100}%` }} title={`${n} view${n === 1 ? "" : "s"}`} />)}
       </div>

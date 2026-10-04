@@ -8,19 +8,19 @@ const bgStyle = (tpl) => (tpl.bg.startsWith("linear") ? { backgroundImage: tpl.b
 export function BizCard({ profile, tpl }) {
   const url = cardUrl(profile?.id || "DEMO");
   const pt = typeOf(profile?.type);
-  const ints = (profile?.interests?.length ? profile.interests : ["Travel", "Film", "Coffee"]).slice(0, 4).join(" · ");
-  const meta = [profile?.age, canShowLocation(profile) ? profile?.location : null].filter(Boolean).join(" · ");
+  const ints = (profile?.interests?.length ? profile.interests : ["Travel", "Film", "Coffee"]).slice(0, 4).join(", ");
+  const meta = [profile?.age, canShowLocation(profile) ? profile?.location : null].filter(Boolean).join(", ");
   return (
     <div className="biz-card" style={{ ...bgStyle(tpl), color: tpl.text, border: `1px solid ${tpl.border}` }}>
       <div>
         <div className="bc-name">{profile?.name || "Your Name"}</div>
-        <div className="bc-tl">{meta}{meta ? "  ·  " : ""}{pt.icon} {pt.label}</div>
+        <div className="bc-tl">{meta && <span style={{ marginRight: 10 }}>{meta}</span>}<span>{pt.icon} {pt.label}</span></div>
         <div className="bc-ints">{ints}</div>
       </div>
       <div className="bc-bot">
         <div>
           <div className="bc-url">{prettyUrl(url)}</div>
-          <div className="bc-cta" style={{ color: tpl.accent }}>Scan to apply ↗</div>
+          <div className="bc-cta" style={{ color: tpl.accent }}>Scan to apply</div>
         </div>
         <QR value={url} size={50} {...qrColors(tpl)} margin={1} />
       </div>
@@ -36,7 +36,7 @@ export function TplMiniPreview({ tpl, name }) {
         <div className="tpl-url">scan to apply</div>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div className="tpl-url">Apply ↗</div>
+        <div className="tpl-url">Apply</div>
         <div className="tpl-qr" style={{ background: tpl.accent }} />
       </div>
     </div>
@@ -53,7 +53,7 @@ export function Avatar({ profile, size }) {
 /** Everything a stranger reads on a card. Used by the public page and the editor's live preview. */
 export function ProfileBody({ p, compact = false }) {
   const pt = typeOf(p.type);
-  const meta = [p.age, canShowLocation(p) ? p.location : null].filter(Boolean).join(" · ");
+  const meta = [p.age, canShowLocation(p) ? p.location : null].filter(Boolean).join(", ");
   return (
     <>
       <div className="type-banner" style={{ borderColor: `${pt.color}44`, color: pt.color, background: `${pt.color}0a`, marginBottom: compact ? 18 : 30 }}>

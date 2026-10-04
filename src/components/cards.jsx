@@ -58,7 +58,7 @@ export function ProfileBody({ p, compact = false }) {
     <>
       <div className="type-banner" style={{ borderColor: `${pt.color}44`, color: pt.color, background: `${pt.color}0a`, marginBottom: compact ? 18 : 30 }}>
         {pt.icon} <span style={{ letterSpacing: "0.06em" }}>{pt.label} Card</span>
-        {!compact && <span style={{ color: "var(--muted)", fontSize: 11, marginLeft: 4 }}>· {pt.tagline}</span>}
+        {!compact && <span style={{ color: "var(--muted)", marginLeft: 6 }}>{pt.tagline}</span>}
       </div>
 
       <div className="profile-hdr" style={compact ? { paddingBottom: 20, marginBottom: 20 } : undefined}>

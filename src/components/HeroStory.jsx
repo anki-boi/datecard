@@ -109,7 +109,7 @@ export default function HeroStory() {
           <div className="hs-obj hs-story">
             <div className="hs-story-name">Alex</div>
             <div className="hs-story-sub">serious card</div>
-            <div className="hs-qr-tile"><QR value={cardUrl(ALEX.id)} size={58} fg="#120e0c" bg="#f3ecdd" margin={1} alt="" /></div>
+            <div className="hs-qr-tile"><QR value={cardUrl(ALEX.id)} size={58} fg="#3a2c28" bg="#e8dcc8" margin={1} alt="" /></div>
             <div className="hs-story-cta">Scan to apply</div>
           </div>
           <div className="hs-label hs-label-story">In your story</div>
@@ -224,7 +224,7 @@ function LockScreen({ on }) {
       <div className="hs-time">9:41</div>
       <div className="hs-date">Saturday, October 4</div>
       <div className="hs-ls-name">Alex Morgan</div>
-      <div className="hs-qr-tile"><QR value={cardUrl(ALEX.id)} size={72} fg="#120e0c" bg="#f3ecdd" margin={1} alt="" /></div>
+      <div className="hs-qr-tile"><QR value={cardUrl(ALEX.id)} size={72} fg="#3a2c28" bg="#e8dcc8" margin={1} alt="" /></div>
       <div className="hs-ls-cta">Scan to apply</div>
     </Screen>
   );

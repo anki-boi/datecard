@@ -88,7 +88,7 @@ anonymous applies, cross-user writes) and prints PASS/FAIL for each.
 
 ## Stack
 
-- **Frontend:** Vite + React 18 + React Router (mobile-first, dark + gold; Bodoni Moda + Hanken Grotesk)
+- **Frontend:** Vite + React 18 + React Router (mobile-first, a soft, lamp-lit dark theme; Fraunces + Hanken Grotesk)
 - **Backend:** Supabase (Postgres + Auth + Storage + RLS). The free tier is enough.
 - **QR / posters:** `qrcode` + canvas, all client-side
 - **AI (optional):** Gemini drafts your card from a six-question interview, and writes openers

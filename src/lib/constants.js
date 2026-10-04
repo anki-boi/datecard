@@ -51,7 +51,7 @@ export const AUTH_PROVIDERS = [
 
 export const CARD_TEMPLATES = [
   { id: "classic", label: "Classic", premium: false, bg: "#0a0a0a",                                         text: "#e8d5a3", accent: "#c9a84c", border: "#2a2a2a" },
-  { id: "cream",   label: "Cream",   premium: false, bg: "#f0ead8",                                         text: "#1a1410", accent: "#7a5c2a", border: "#c8b898" },
+  { id: "cream",   label: "Cream",   premium: false, bg: "#e8dcc8",                                         text: "#3a2c28", accent: "#7a5a3e", border: "#c9b79c" },
   { id: "noir",    label: "Noir",    premium: true,  bg: "linear-gradient(135deg,#0d0d0d 0%,#1a1208 100%)", text: "#e8d5a3", accent: "#c9a84c", border: "#c9a84c" },
   { id: "minimal", label: "Minimal", premium: true,  bg: "#ffffff",                                         text: "#111111", accent: "#555555", border: "#dddddd" },
   { id: "bold",    label: "Bold",    premium: true,  bg: "#c9a84c",                                         text: "#0a0a0a", accent: "#0a0a0a", border: "transparent" },

@@ -44,7 +44,7 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   const solid = templateSolid(tpl);
   const light = ["#ffffff", "#f0ead8", "#c9a84c"].includes(solid.toLowerCase());
 
-  try { await document.fonts?.load(`italic 600 ${9 * u}px "Bodoni Moda"`); await document.fonts?.load(`500 ${3 * u}px "Hanken Grotesk"`); await document.fonts?.load(`400 ${3 * u}px "DM Mono"`); } catch { /* fallback fonts */ }
+  try { await document.fonts?.load(`italic 600 ${9 * u}px "Fraunces"`); await document.fonts?.load(`500 ${3 * u}px "Hanken Grotesk"`); await document.fonts?.load(`400 ${3 * u}px "DM Mono"`); } catch { /* fallback fonts */ }
 
   // Background: template colour, a soft glow in the card-type colour, fine grain.
   ctx.fillStyle = solid;
@@ -77,7 +77,7 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   }
 
   ctx.fillStyle = tpl.text;
-  ctx.font = `italic 600 ${9.5 * u}px "Bodoni Moda", Georgia, serif`;
+  ctx.font = `italic 600 ${9.5 * u}px "Fraunces", Georgia, serif`;
   ctx.fillText(profile.name || "Your Name", w / 2, y);
   y += 5.5 * u;
 
@@ -89,7 +89,7 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   y += 6 * u;
 
   if (profile.lookingFor) {
-    ctx.font = `italic 400 ${3.6 * u}px "Bodoni Moda", Georgia, serif`;
+    ctx.font = `italic 400 ${3.6 * u}px "Fraunces", Georgia, serif`;
     ctx.fillStyle = tpl.accent;
     for (const line of wrap(ctx, `“${profile.lookingFor}”`, w * 0.78).slice(0, 2)) { ctx.fillText(line, w / 2, y); y += 5 * u; }
     y += 2 * u;
@@ -119,7 +119,7 @@ export async function renderPoster(profile, url, tpl, kind = "lockscreen") {
   ctx.font = `400 ${2.5 * u}px "DM Mono", monospace`;
   ctx.fillText(prettyUrl(url), w / 2, y);
   ctx.globalAlpha = 0.35;
-  ctx.font = `italic 500 ${2.6 * u}px "Bodoni Moda", Georgia, serif`;
+  ctx.font = `italic 500 ${2.6 * u}px "Fraunces", Georgia, serif`;
   ctx.fillText("DateCard", w / 2, h - 6 * u);
   ctx.globalAlpha = 1;
 

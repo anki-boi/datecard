@@ -4,7 +4,7 @@ import { AUTH_PROVIDERS } from "../lib/constants.js";
 import { useApp } from "../state.jsx";
 
 /** QR code rendered locally (no third-party request). */
-export function QR({ value, size = 140, fg = "#0a0a0a", bg = "#e8d5a3", margin = 1, alt = "QR code" }) {
+export function QR({ value, size = 140, fg = "#2a1f22", bg = "#e8dcc8", margin = 1, alt = "QR code" }) {
   const [src, setSrc] = useState(null);
   useEffect(() => {
     let alive = true;

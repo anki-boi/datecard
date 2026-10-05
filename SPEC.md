@@ -2,7 +2,7 @@
 
 > This document is the contract between intent and code. If a feature isn't here, it doesn't exist.
 > If behavior contradicts this doc, the doc wins. Update the doc first, then the code.
-> Status: v0.2 — after the applicant-side, card-states, visibility, privacy, and AI-builder decisions (Aug 8, 2026).
+> Status: v0.3 — playable demo backend, card editing, photos, openers, and RLS hardening (Oct 4, 2026).
 
 ---
 
@@ -25,10 +25,10 @@ apply, you approve, and only then does anyone see your socials.
 
 ## 3. Locked decisions
 
-- One account (one-tap social: Google, Facebook, Instagram; Twitter/TikTok buttons decorative for now) → up to **3 profiles**, one per card type (`serious`, `casual`, `friendship`). Account is private; profiles are public, per-card.
+- One account (one-tap social: Google, Facebook, X/Twitter — Supabase has no Instagram/TikTok provider) → up to **3 profiles**, one per card type (`serious`, `casual`, `friendship`). Account is private; profiles are public, per-card.
 - **Photos included** — one photo per profile (Supabase Storage). No-pictures bet is dead.
 - **Apply model:** anyone reads the public card → applies (social login + optional note) → owner accepts/declines → socials revealed **only on accept**.
-- **Socials live in the DB but are unreachable publicly** — RLS + RPCs: `get_public_profile()` returns everything except socials; `reveal_socials()` returns them only to the owner or an accepted applicant.
+- **Socials live in the DB but are unreachable publicly** — RLS + RPCs: `get_public_profile()` returns everything except socials **and owner_id** (it returns `is_mine` instead, so cards can't be cross-linked); `reveal_socials()` returns them only to the owner or an accepted applicant.
 - **Premium (gated by flag, no payments yet):** 3 profiles, extra card templates, analytics, custom tagline, QR-as-key token activation.
 - **Free tier:** 1 profile, Classic + Cream templates, core flow.
 
@@ -46,9 +46,10 @@ events        — id, profile_id, kind (view|apply|accept|report), timestamps
 ```
 
 **RLS summary:**
-- `profiles`: owner-only direct access. Public reads go through `get_public_profile()` (security definer, socials excluded).
-- `applications`: readable by profile owner **or** the applicant; insertable by anyone signed in; status update owner-only.
-- `events`: anyone inserts, owner reads.
+- `profiles`: owner-only direct access. Public reads go through `get_public_profile()` (security definer, socials + owner_id excluded, city stripped when hidden).
+- `applications`: readable by profile owner **or** the applicant; insertable only **as yourself** (`applicant_id = auth.uid()`), **as `pending`**, onto an **active** card you don't own; status update owner-only.
+- `events`: anyone inserts `view`/`apply`/`report`; only the owner inserts `accept`; owner reads.
+- `storage.photos`: public read; users write only under their own `uid/` prefix.
 
 ## 5. Behaviors
 
@@ -56,15 +57,16 @@ events        — id, profile_id, kind (view|apply|accept|report), timestamps
 1. Landing → choose card type → one-tap social login (account auto-created) → build profile.
 2. Build = basics (name, age, city, bio) + vibe (interests, hobbies, looking-for) + **prompts (up to 3, curated)** + per-card socials + **show-city toggle (casual card: always off)**.
 3. Optional **AI-assisted card**: 6-question interview → AI compiles bio + looking-for + 3 prompts + interest suggestions in the user's voice → human edits → save. (Client-side Gemini for now; edge-function proxy later. No key → feature hidden with a notice.)
-4. Dashboard: profile-type tabs, stats, QR + link, applications inbox (pending → accept/decline), **pause/resume per card**, preview, print.
+4. Dashboard: profile-type tabs, stats, QR + link, applications inbox (pending → accept/decline, declined can be re-accepted), **pause/resume per card**, **edit**, preview, share kit (print sheet, lock-screen/story poster, send).
 5. Accept → applicant sees socials; owner sees them in Accepted tab.
 6. Public pages are `noindex` — cards are never Googleable.
 
 ### 5.2 Applicant flow
 1. Scans QR / opens link → public card page: type banner, photo, name, age, city (if allowed), bio, interests, hobbies, looking-for, prompts. **Report button** (fire-and-forget event) on every public card.
 2. Apply → one-tap social login → optional note (+ finsta hint on casual cards) → application sent with a **status link**.
-3. Status page `/a/{applicationId}`: pending → "waiting on their decision"; accepted → 🎉 **socials revealed** (copyable); declined → neutral copy.
+3. Status page `/a/{applicationId}`: pending → "waiting on their decision"; accepted → 🎉 **socials revealed** (open/copy) + **three openers** built from the card's own answers (offline; optional AI); declined → neutral copy.
 4. **Paused cards:** banner "not taking applications right now", apply disabled.
+5. `/me` lists every application the signed-in user has sent.
 
 ### 5.3 Card states
 - `active` — normal.
@@ -85,9 +87,10 @@ events        — id, profile_id, kind (view|apply|accept|report), timestamps
 
 - [x] **P0 — Scaffold:** Vite+React+Supabase, demo-mode fallback, `/p/:cardId`, RLS schema, open source repo. *(done Aug 8)*
 - [x] **P1 — Behavior contract:** applicant status page, card states (pause), per-card visibility, privacy defaults (noindex, report, socials-inaccessible), AI builder v1 (client Gemini). *(this pass)*
-- [ ] **P2 — Hardening:** photo upload (Storage), email notification on accept (needs SMTP/Resend + edge function), AI key proxied through edge function, applicant "my applications" list.
+- [x] **P1.5 — Playable demo & hardening:** in-browser demo backend with the same contract, card editing, photo upload (Storage), applicant "my applications", openers, local QR (no third party), RLS fixes. *(Oct 4)*
+- [ ] **P2 — Hardening:** email notification on accept (needs SMTP/Resend + edge function), AI key proxied through edge function.
 - [ ] **P3 — Premium:** payments (Stripe), 3-profile unlock, analytics dashboard, extra templates, QR-as-key token activation.
-- [ ] **P4 — PH launch:** print-shop PDF export (A6/credit-card), Messenger-first share sheet, phone-wallpaper QR.
+- [ ] **P4 — PH launch:** ~~phone-wallpaper QR~~ ✓, ~~Messenger share~~ ✓, ~~10-up print sheet~~ ✓, print-shop PDF export (A6).
 
 ## 7. Non-goals (v1)
 
@@ -100,5 +103,5 @@ events        — id, profile_id, kind (view|apply|accept|report), timestamps
 ## 8. Open questions (parked)
 
 1. Should accepted applicants be able to *request* new socials (profile edited after accept)? → v2.
-2. Do we auto-generate the first-message opener on accept? → strong candidate for P2.
+2. ~~Do we auto-generate the first-message opener on accept?~~ → **Yes (v0.3):** three seeded openers on the accepted status page, quoting the card.
 3. Email notifications require a backend send path — Resend via Supabase Edge Function is the default choice when we get there.
